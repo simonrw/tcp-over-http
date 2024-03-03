@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 rustc_stable = []
+use-axum = ["axum"]
 
 [profile.release]
 #https://github.com/flamegraph-rs/flamegraph
@@ -31,3 +32,4 @@ derivative = "*"
 tokio-stream = "*"
 itertools = "*"
 rand = "*"
+axum = { version = "0.7.4", optional = true }
