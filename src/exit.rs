@@ -1,9 +1,9 @@
 use crate::artex;
 use crate::{ouroboros_impl_wrapper::WrapperBuilder, Artex};
-use actix_web::dev::Server;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use anyhow::anyhow;
 use futures::stream::TryStreamExt;
+use futures::Future;
 use halfbrown::HashMap as Map;
 use std::net::SocketAddr;
 use stream_cancel::{Trigger, Valve};
@@ -165,7 +165,10 @@ async fn close(manager: web::Data<ExitSessionManager>, uid_s: web::Path<String>)
     HttpResponse::Ok()
 }
 
-pub fn main(bind_addr: &[SocketAddr], target_addr: Vec<SocketAddr>) -> (Vec<SocketAddr>, Server) {
+pub fn main(
+    bind_addr: &[SocketAddr],
+    target_addr: Vec<SocketAddr>,
+) -> (Vec<SocketAddr>, impl Future<Output = std::io::Result<()>>) {
     let session_manager = web::Data::new(ExitSessionManager::new(target_addr));
     #[cfg(test)]
     {
