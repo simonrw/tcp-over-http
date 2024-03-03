@@ -1,4 +1,5 @@
-#[build]
-#rustflags = ["--cfg", "tokio_unstable"]
-[env]
-RUST_TEST_NOCAPTURE = "1"
+
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=--ld-path=mold"]
+
