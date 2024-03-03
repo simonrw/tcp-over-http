@@ -7,7 +7,7 @@ use actix_web::web;
 use halfbrown::HashMap;
 use itertools::Itertools;
 use rand::RngCore;
-use std::{convert::TryInto, net::SocketAddr, sync::atomic::Ordering, time::Duration};
+use std::{net::SocketAddr, sync::atomic::Ordering, time::Duration};
 use std::{ops::Deref, sync::Arc};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -101,26 +101,26 @@ async fn roundtrip() -> Persist {
         }
     };
 }
+#[ouroboros::self_referencing]
+struct Guard {
+    o: MutexGuard<'static, Option<web::Data<ExitSessionManager>>>,
+    #[borrows(o)]
+    #[covariant]
+    r: RwLockReadGuard<'this, HashMap<Uuid, ExitSession>>,
+}
+impl Deref for Guard {
+    type Target = HashMap<Uuid, ExitSession>;
+    fn deref(&self) -> &Self::Target {
+        #[allow(clippy::explicit_deref_methods)]
+        self.borrow_r().deref()
+    }
+}
 
 #[test]
 fn test() {
     init_panic_hook();
 
     RT.block_on(async {
-        #[ouroboros::self_referencing]
-        struct Guard {
-            o: MutexGuard<'static, Option<web::Data<ExitSessionManager>>>,
-            #[borrows(o)]
-            #[covariant]
-            r: RwLockReadGuard<'this, HashMap<Uuid, ExitSession>>,
-        }
-        impl Deref for Guard {
-            type Target = HashMap<Uuid, ExitSession>;
-            fn deref(&self) -> &Self::Target {
-                #[allow(clippy::explicit_deref_methods)]
-                self.borrow_r().deref()
-            }
-        }
         let lock = || async {
             let guard: Guard = GuardAsyncBuilder {
                 o: crate::exit::test::ARC.lock().await,

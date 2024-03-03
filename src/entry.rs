@@ -5,7 +5,7 @@ use crate::{artex, join_url};
 use bytes::Bytes;
 use futures::Future;
 use reqwest::{Body, Client, Response, Url};
-use std::convert::{identity, Infallible, TryInto};
+use std::convert::{identity, Infallible};
 use std::io::ErrorKind;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -132,7 +132,7 @@ async fn process_socket(target_url: Arc<Url>, socket: tokio::net::TcpStream) -> 
 
                 tokio::select! {
                     x = tokio::io::copy(&mut r, &mut s_write) => x.expect("unreachable"),
-                    _ = stop_download.cancelled() => break,
+                    () = stop_download.cancelled() => break,
                 };
 
                 break;
@@ -170,10 +170,7 @@ pub async fn main(
                 "Permission denied. Port {:?} to low for non-root user?",
                 bind_addr.iter().map(SocketAddr::port).collect::<Vec<_>>()
             ),
-            e => eprintln!(
-                "Could not listen to your desired ip address or port: {:?}",
-                e
-            ),
+            e => eprintln!("Could not listen to your desired ip address or port: {e:?}"),
         }
         panic!();
     };
@@ -205,7 +202,6 @@ fn assert_ok(resp: Response) -> impl std::future::Future<Output = Response> {
     return async move { resp };
     #[cfg(not(feature = "rustc_stable"))]
     {
-        let blame_caller = std::intrinsics::caller_location();
         async move {
             if resp.status() == reqwest::StatusCode::OK {
                 return resp;
@@ -215,7 +211,6 @@ fn assert_ok(resp: Response) -> impl std::future::Future<Output = Response> {
             let resp_body = bytes.as_ref().map(|x| std::str::from_utf8(x));
             eprintln!("{s}");
             eprintln!("{resp_body:#?}");
-            eprintln!("caller: {blame_caller}");
             panic!("status was not ok");
         }
     }

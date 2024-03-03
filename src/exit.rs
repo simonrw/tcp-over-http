@@ -104,7 +104,7 @@ async fn upload(
         )
     };
     let r = http_receive_data
-        .map_err(|x| Err(x).unwrap())
+        .map_err(|x| panic!("{x:?}"))
         .into_async_read();
     let mut r = tokio_util::compat::FuturesAsyncReadCompatExt::compat(r);
     let tcp_out = &mut *guard.await;
@@ -117,7 +117,7 @@ async fn upload(
                 HttpResponse::Ok().body("finished")
             }
         }
-        _ = stop_copy.cancelled() => {
+        () = stop_copy.cancelled() => {
             HttpResponse::Ok().body("cancelled")
         }
     };
@@ -184,7 +184,7 @@ pub fn main(bind_addr: &[SocketAddr], target_addr: Vec<SocketAddr>) -> (Vec<Sock
     .unwrap();
     let bound = x.addrs();
     println!("Listening on {bound:?}");
-    return (bound, x.run());
+    (bound, x.run())
 }
 
 #[cfg(test)]

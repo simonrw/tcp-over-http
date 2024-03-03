@@ -1,9 +1,5 @@
-use std::{
-    fmt::{Debug, Formatter},
-    panic::Location,
-};
+use std::fmt::{Debug, Formatter};
 
-use anyhow::anyhow;
 use derivative::Derivative;
 
 fn to_string_fmt<T: ToString>(t: &T, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -13,8 +9,6 @@ fn to_string_fmt<T: ToString>(t: &T, f: &mut Formatter<'_>) -> Result<(), std::f
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) struct TraceError {
-    #[derivative(Debug(format_with = "self::to_string_fmt"))]
-    source: &'static Location<'static>,
     #[derivative(Debug(format_with = "self::to_string_fmt"))]
     error: String,
     message: Option<String>,
@@ -28,22 +22,6 @@ impl TraceError {
 }
 
 pub(crate) type Trace<T> = Result<T, TraceError>;
-
-pub(crate) trait TraceExt {
-    type Output;
-    fn trace(self) -> Result<Self::Output, TraceError>;
-}
-
-impl<T> TraceExt for Option<T> {
-    type Output = T;
-    #[track_caller]
-    fn trace(self) -> Result<Self::Output, TraceError> {
-        match self {
-            Some(x) => Ok(x),
-            None => Err(TraceError::from(anyhow!("NoneError"))),
-        }
-    }
-}
 
 pub(crate) trait ContextExt {
     type Output;
@@ -66,7 +44,6 @@ impl<T: Not + Debug> From<T> for TraceError {
     #[track_caller]
     fn from(error: T) -> Self {
         TraceError {
-            source: std::intrinsics::caller_location(),
             error: format!("{error:#?}"),
             message: None,
         }

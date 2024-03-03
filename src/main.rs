@@ -1,13 +1,7 @@
 //#![allow(warnings)]
 #![cfg_attr(
     not(feature = "rustc_stable"),
-    feature(
-        core_intrinsics,
-        auto_traits,
-        negative_impls,
-        panic_internals,
-        panic_info_message
-    )
+    feature(auto_traits, negative_impls, panic_info_message)
 )]
 #![allow(clippy::needless_return)]
 #![warn(clippy::pedantic)]
@@ -44,7 +38,7 @@ pub(crate) fn join_url<'a>(base: &Url, path: impl IntoIterator<Item = &'a str>) 
             assert!(x.ends_with('/'));
         }
     }
-    return last;
+    last
 }
 
 #[derive(Clone, Debug, Subcommand)]
