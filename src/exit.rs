@@ -2,10 +2,17 @@ use crate::artex;
 use crate::{ouroboros_impl_wrapper::WrapperBuilder, Artex};
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use anyhow::anyhow;
+#[cfg(feature = "use_axum")]
+use axum::routing::get;
+#[cfg(feature = "use_axum")]
+use axum::Router;
 use futures::stream::TryStreamExt;
+use futures::FutureExt;
+
 use futures::Future;
 use halfbrown::HashMap as Map;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use stream_cancel::{Trigger, Valve};
 use tokio::{net::TcpStream, sync::RwLock};
 use tokio_util::codec::{BytesCodec, FramedRead};
@@ -165,6 +172,42 @@ async fn close(manager: web::Data<ExitSessionManager>, uid_s: web::Path<String>)
     HttpResponse::Ok()
 }
 
+#[derive(Clone)]
+struct State {
+    session_manager: Arc<ExitSessionManager>,
+}
+
+impl State {
+    pub fn new(session_manager: ExitSessionManager) -> Self {
+        Self {
+            session_manager: Arc::new(session_manager),
+        }
+    }
+}
+
+#[cfg(feature = "axum")]
+pub fn main(
+    bind_addr: &[SocketAddr],
+    target_addr: Vec<SocketAddr>,
+) -> (Vec<SocketAddr>, impl Future<Output = std::io::Result<()>>) {
+    use std::future::IntoFuture;
+
+    use futures::TryFutureExt;
+
+    let session_manager = ExitSessionManager::new(target_addr);
+    let state = State::new(session_manager);
+
+    let app = Router::new()
+        .route("/", get(|| async { "Hello, World!" }))
+        .with_state(state);
+    let bind_addr = bind_addr[0];
+
+    let fut = tokio::net::TcpListener::bind(bind_addr)
+        .and_then(move |listener| axum::serve(listener, app).into_future());
+    (Vec::new(), fut)
+}
+
+#[cfg(not(feature = "axum"))]
 pub fn main(
     bind_addr: &[SocketAddr],
     target_addr: Vec<SocketAddr>,

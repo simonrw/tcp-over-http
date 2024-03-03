@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = ["use_axum"]
 rustc_stable = []
-use-axum = ["axum"]
+use_axum = ["axum"]
 
 [profile.release]
 #https://github.com/flamegraph-rs/flamegraph
